@@ -1,8 +1,3 @@
-<h1 align="center">
-    <img src="https://github.com/Netflix/Priam/blob/3.x/images/logo.jpg" alt="Priam Logo" />
-</h1>
-
-<div align="center">
 
 # TL;DR;
 
