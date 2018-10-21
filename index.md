@@ -54,8 +54,7 @@ Priam provides several default implementations (AWS, Configuration, credentials 
 
 ## Build Process
 Checkout the code from git and run:
-```/gradlew build
-```
+`/gradlew build`
 The gradlew script will pull down all necessary gradle components/infrastructure automatically, then run the build. 
 
 This should create both a jar and a war file for your project. Note that, the default provided log4j.properties assumes tomcat deployment. Modify this according to your needs.
