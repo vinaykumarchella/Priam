@@ -39,15 +39,15 @@ The name 'Priam' refers to the King of Troy in Greek mythology, who was the fath
 |[3.x](https://github.com/Netflix/Priam/tree/3.x)                  | C* 2.1.x                  | Any minor version of Apache C* 2.1.x and DSE |[link](https://www.javadoc.io/doc/com.netflix.priam/priam/3.1.65)
 
 
-# [Installation](/installation.html)
+# [Installation](/Priam/installation.html)
 
-# [Backups](/backups.html)
+# [Backups](/Priam/backups.html)
 
-# [Restore](/restore.html)
+# [Restore](/Priam/restore.html)
 
-# [Compcation](/compaction.html)
+# [Compcation](/Priam/compaction.html)
 
-# [Flush](/flush.html)
+# [Flush](/Priam/flush.html)
 
 # License
 Copyright 2011-2018 Netflix, Inc.
