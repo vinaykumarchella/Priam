@@ -39,15 +39,33 @@ The name 'Priam' refers to the King of Troy in Greek mythology, who was the fath
 |[3.x](https://github.com/Netflix/Priam/tree/3.x)                  | C* 2.1.x                  | Any minor version of Apache C* 2.1.x and DSE |[link](https://www.javadoc.io/doc/com.netflix.priam/priam/3.1.65)
 
 
-# [Installation](/Priam/installation.html)
+# [Installation](installation.html)
 
-# [Backups](/Priam/backups.html)
+# Management Tasks
+## [Token Management](tokenmanagement.html)
 
-# [Restore](/Priam/restore.html)
+## [Cassandra Tuning](cassandratuning.html)
 
-# [Compcation](/Priam/compaction.html)
+## [Cassandra REST API](cassandrarestapi.html)
 
-# [Flush](/Priam/flush.html)
+## [Backups](backups.html)
+
+## [Restore](restore.html)
+
+## [Compaction](compaction.html)
+
+## [Flush](flush.html)
+
+## [Metrics](metrics.html)
+
+# [Contributions](contributions.html)
+
+# [Presentations](presentations.html)
+
+# Authors 
+1. Arun Agrawal @arunagrawal84
+2. Joseph Lynch @jolynch
+3. Vinay Chella @vinaykumarchella
 
 # License
 Copyright 2011-2018 Netflix, Inc.
@@ -58,7 +76,6 @@ Licensed under the Apache License, Version 2.0 (the “License”); you may not 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-# Authors 
-1. Arun Agrawal @arunagrawal84
-3. Joseph Lynch @jolynch
-2. Vinay Chella @vinaykumarchella
+A Netflix Original Production
+
+[Netflix OSS](http://netflix.github.io/#repo) | [Tech Blog](https://medium.com/netflix-techblog) | [Twitter @NetflixOSS](https://twitter.com/NetflixOSS) | [Jobs](https://jobs.netflix.com/)
