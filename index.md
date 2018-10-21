@@ -48,7 +48,7 @@ Priam provides several default implementations (AWS, Configuration, credentials 
 * Setup aws credentials and SimpleDB properties
 * Create S3 buckets to store your backups
 * Copy priam-cass-extensions-<version>.jar into your $CASS_HOME/lib directory
-* Add -javaagent:$CASS_HOME/lib/priam-cass-extensions-<version>.jar to cassandra's JVM arguments
+* Add -javaagent:`$CASS_HOME/lib/priam-cass-extensions-<version>.jar` to cassandra's JVM arguments
 * Configure basic configurations
 * Deploy Priam.war in your container
 
@@ -68,23 +68,28 @@ When setting up ASG, using as-create-auto-scaling-group, set availability zone t
 
 Your Cassandra cluster could be spanning multiple ASGs. Such cases arise when you want to provide HA across zones and to overcome the AWS limitation of load balancing across zones i.e., currently, AWS does not guarantee instances will be balanced across zones if instances are not available in a particular zone. In such cases, you could create multiple ASGs with each ASG bound to single zone.
 
-In such cases your ASG name should be suffixed with '-{ZONE}'. Eg: test_cluster-useast1a.
+In such cases your ASG name should be suffixed with `'-{ZONE}'`. Eg: `test_cluster-useast1a.`
 
 ## Web Container setup
 
-Since Priam changes the configuration files for Cassandra and starts/stops the services, the web container it's running in must have execute rights on the script to modify the cassandra.yaml file and execute the /etc/init.d/cassandra (configurable location) script.
+Since Priam changes the configuration files for Cassandra and starts/stops the services, the web container it's running in must have execute rights on the script to modify the cassandra.yaml file and execute the `/etc/init.d/cassandra` (configurable location) script.
 
 ## Credentials
 
 
-The default implementation uses clear text credentials. To use this provide AWS accessid and secrectkey in `-/etc/awscredential.properties` -- copy and modify from src/main/resources/conf/awscredential.properties. You can however, override ICredential to provide a more secure way of obtaining credentials. Additionally, ensure your keys do not contain special characters and are not enclosed in quotes of any kind. The preferred way is to use IAM key profile management. 
+The default implementation uses clear text credentials. To use this provide AWS accessid and secrectkey in `-/etc/awscredential.properties` -- copy and modify from `src/main/resources/conf/awscredential.properties`. 
+
+You can however, override ICredential to provide a more secure way of obtaining credentials. Additionally, ensure your keys do not contain special characters and are not enclosed in quotes of any kind. 
+
+The preferred way is to use IAM key profile management. 
 
 ### IAMCredential
 Using IAM Credentials allows you to provide access to the AWS api without storing an AccessKeyId or SecretAccessKey anywhere on the machine.
 
 1. Create a new IAM Role in the AWS console or using the API and make sure it can access EC2, S3, and SimpleDB resources.
 2. Assign that role to the auto scaling group.
-3. Modify priam/src/main/java/com/netflix/priam/defaultimpl/PriamGuiceModule.java
+3. Modify `priam/src/main/java/com/netflix/priam/defaultimpl/PriamGuiceModule.java`
+
 ```// Add this line
    import com.netflix.priam.aws.IAMCredential;
    
@@ -105,12 +110,15 @@ Using IAM Credentials allows you to provide access to the AWS api without storin
 ## SimpleDB Domains
 Priam uses SimpleDB to register nodes as well as read properties.
 
-Create the following SimpleDB domains: InstanceIdentity & PriamProperties. Use PriamProperties to add properties if you want to modify defaults. InstanceIdentity is used by Priam to register nodes. The SimpleDB domains must be located in the US-East-1 region.
+Create the following SimpleDB domains: InstanceIdentity & PriamProperties. 
+
+Use PriamProperties to add properties if you want to modify defaults. InstanceIdentity is used by Priam to register nodes. The SimpleDB domains must be located in the US-East-1 region.
+
 **Note**: SimpleDB Configuration Management and Token Management is soon to be deprecated and moved to use DynamoDB.
 
 ## PriamStartupAgent and NFSeedProvider
 
-These are the 2 classes that will be required by Cassandra for starting and fetching token, seeds and other information from Priam. You will need to copy priam-cass-extensions-<version>.jar into your $CASS_HOME/lib directory, and add -javaagent:$CASS_HOME/lib/priam-cass-extensions-1.1.15.jar to cassandra's JVM arguments.
+These are the 2 classes that will be required by Cassandra for starting and fetching token, seeds and other information from Priam. You will need to copy priam-cass-extensions-<version>.jar into your $CASS_HOME/lib directory, and add -javaagent:$CASS_HOME/lib/priam-cass-extensions-<version>.jar to cassandra's JVM arguments.
 
 Priam updates cassandra.yaml with NFSeedProvider by default.
 
@@ -119,7 +127,7 @@ To change the default Priam properties, you can create property items in the Pri
 
 ### Providing start and stop scripts
 1. Configure the name of the application. 
-2. As part of the configuration provide any custom start and stop scripts to Priam via properties. PriamConfiguration defaults to /etc/init.d/cassandra script for starting and stopping.    
+2. As part of the configuration provide any custom start and stop scripts to Priam via properties. PriamConfiguration defaults to `/etc/init.d/cassandra` script for starting and stopping.    
 
 ## Deploying
 Copy the jar generated in the build step into the cassandra lib directory. Deploy the war into your web container.
@@ -131,6 +139,7 @@ To see if Priam has started successfully, you can lookup SimpleDB InstanceIdenti
 You can also verify REST API by running:
 
 ```$curl http://localhost:8080/Priam/REST/v1/cassconfig/get_token```
+
 This should return the token used by node. Kudos if you reached so far! Ensure your Cassandra process is up and is using the same token found by running the above command.
 
 # License
@@ -138,6 +147,6 @@ Copyright 2011-2018 Netflix, Inc.
 
 Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+(http://www.apache.org/licenses/LICENSE-2.0)
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
