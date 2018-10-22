@@ -36,11 +36,19 @@ Throttling of uploads helps reduce disk IO and network IO as well. With Priam pr
 ## SNS Notifications
 Priam can send SNS Notifications, pre and post upload of any file to S3. This allows a cleaner integration with external service depending on backups which are about to be uploaded. 
 
-### Configuration
+## Async Uploads 
+Priam allows user to configure if they wish to do parallel uploads to remote file system for snapshots and incrementals. Doing parallel uploads makes your backup faster but may use the bandwidth of the instance and thus starve Cassandra. Bandwidth used by backups can be controlled by `throttling` them. This should be carefully reviewed based on your instance capabilities. 
+
+Priam by default does NOT allow async uploads, though our suggestion is to enable them on few instances and see the performance and then tune. In our internal testing, we have hardly found Cassandra to be starved by bandwidth usage (even during peak).  
+
+## Configuration
 1. **_priam.s3.bucket_**: This is the default S3 location where all backup files will be uploaded to. E.g. ```s3_bucket_region```. Default: ```cassandra-archive```
 2. **_priam.upload.throttle_**: This allows backup/incremental's to be throttled so they don't end up taking all the bandwidth from Cassandra. Note: try to schedule full snapshot during off-peak time. Tweak this only if required else your snapshot would starve. Default: ```MAX_INT_VALUE```. 
-1. **_priam.backup.notification.topic.arn_**: Amazon Resource Name for the SNS service where notifications need to be sent. This assumes that all the topics are created and the instance has permission to send SNS messages. Disabled if the value is null or empty. Default: ```None```. 
+3. **_priam.backup.notification.topic.arn_**: Amazon Resource Name for the SNS service where notifications need to be sent. This assumes that all the topics are created and the instance has permission to send SNS messages. Disabled if the value is null or empty. Default: ```None```. 
 4. **_priam.backup.chunksizemb_**: Size of the file in MB above which Priam will try to use multi-part uploads. Note that chunk size of the file being uploaded is as defined by user only if total parts to be uploaded (based on file size) will not exceed 10000 (max limit from AWS). If file is bigger than 10000 * configured chunk size, Priam will adjust the chunk size to ensure it can upload the file. Default: _10 MB_ 
+5. **_priam.backup.queue.size_**: Queue size to be used for backup uploads. Note that once queue is full, we would wait for `priam.upload.timeout` to add any new item before declining the request and throwing exception. Default: 100,000. 
+6. **_priam.backup.threads_**: The number of backup threads to be used to upload files to S3. Default: ```2```
+7. **_priam.upload.timeout_**: Uploads are scheduled in `priam.backup.queue.size`. If queue is full then we wait for this time for the queue to have an entry available for queueing the current task. Default: 2 minutes. 
 
 # Snapshot or complete backup
 Priam leverages Cassandra's snapshot feature to have an eventually consistent backup.  Cassandra's snapshot feature flushes data to disk and hard links all SSTable files into a snapshot directory. These files are then picked up by Priam and uploaded to S3.  Although snapshotting across the cluster is not guaranteed to produce a consistent backup of the cluster, consistency is resumed upon restore by Cassandra and running repairs. 
@@ -52,6 +60,15 @@ Snapshots are run on a CRON for the entire cluster, at a specific time, ideally 
 All SSTable files are uploaded individually to S3 with built-in retries on failure.  Upon completion, the meta file (_meta.json_) is uploaded which contains a reference to all files that belong to the snapshot.   This is then used for validation during restore.   
 
 
+## Backup Status Management
+
+Priam by default stores the status of all the snapshot. This is useful to determine if the snapshot at a given Instant was successful. It has support to store status of multiple snapshots for a given date. 
+
+The default binding is to store these details to a local file configured via `priam.backup.status.location`. 
+
+
+## Validation of Snapshot
+Priam can download the ```meta.json``` for a given snapshot, parse it and then validate the backup by ensuring that all the files listed in file are available on remote file system. This can be used to verify that no file was missed during snapshot. 
 
 ### Snapshot Configuration
 
@@ -60,21 +77,33 @@ All SSTable files are uploaded individually to S3 with built-in retries on failu
 * **Deprecated**: ```HOUR```: This allows backup to run on a daily basis at a given hour. It expects a valid value of **_priam.backup.hour_** to be there. If not, priam will not start and fail fast. 
 2. **Deprecated**: **_priam.backup.hour_**: This allows backup to run on a daily basis at a given hour. If the value is ```-1```, it means snapshot backups and incremental are disabled. Default value: ```12```
 3. **_priam.backup.cron_**: This allows backups to be run on CRON. Example: you want to run a backup once a week. Value needs to be a valid CRON expression. To disable backup, use the value of ```-1```. The default value is to backup at ```12```. 
-4. **_priam.backup.threads_**: The number of backup threads to be used to upload files to S3. Default: ```2```
-5. **_priam.snapshot.keyspace.filter_**: List of the keyspace regex names separated by a comma to filter(exclude) while performing the snapshot for the cluster. E.g. ```system*,perftest*```. Default: ```None```
-6. **_priam.snapshot.cf.filter_**: List of column family regex names separated by a comma to filter(exclude) while performing the snapshot for the cluster. E.g. ```system.local*,system.peers*,system.hints*```. Default: ```None```
+5. **_priam.snapshot.cf.include_**: Column Family(ies), comma delimited, to include for snapshot. If no override exists, all keyspaces/cf's will be backed up to remote file system. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Snapshot exclude list is applied first to exclude CF/keyspace and then snapshot include list is applied to include the CF's/keyspaces. Default: ```None```
+6. **_priam.snapshot.cf.exclude_**: Column Family(ies), comma delimited, to ignore while doing snapshot. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Snapshot exclude list is applied first to exclude CF/keyspace and then snapshot include list is applied to include the CF's/keyspaces. Default: ```None```
+7. **_priam.backup.status.location_**: The absolute path to store the backup status on disk. Default: ```<data file location>/backup.status```. 
+8. **_priam.async.snapshot_**: This decides if snapshot files should be uploaded to the remote file system in async fashion. This will allow snapshot to use the `priam.backup.threads` to do parallel uploads. Default: ```false```. 
+
+## Manual Invocation
+1. ```http://localhost:8080/Priam/REST/v1/backup/do_snapshot```
+2. ```http://localhost:8080/Priam/REST/v1/backup/status```
+3. ```http://localhost:8080/Priam/REST/v1/backup/status/{date}```
+4. ```http://localhost:8080/Priam/REST/v1/backup/status/{date}/snapshots```
+5. ```http://localhost:8080/Priam/REST/v1/backup/validate/snapshot/{daterange}```
+6. ```http://localhost:8080/Priam/REST/v1/backup/list/{daterange}```
+
+
 
 # Incremental backup
 
 When incremental backups are enabled in Cassandra, hard links are created for all new SSTables created in the incremental backup directory. Since SSTables are immutable files they can be safely copied to an external source. Priam scans this directory frequently for incremental SSTable files and uploads to S3. 
 
-### Incremental Configuration
+## Incremental Configuration
 1. **_priam.backup.incremental.enable_**: This allows the incremental backups to be uploaded to S3. By default every 10 seconds, Priam will try to upload any new files flushed/compacted by Cassandra to disk. Default: ```true```
-2. **_priam.incremental.keyspace.filter_**: List of the keyspace regex names separated by a comma to filter(exclude) while backing up the incremental's for the cluster. E.g. ```system*,perftest*```. Default: ```None```
-3. **_priam.incremental.cf.filter_**: List of column family regex names separated by a comma to filter(exclude) while backing up the incremental's for the cluster. E.g. ```system.local*,system.peers*,system.hints*```. Default: ```None```
-4. **_priam.incremental.bkup.parallel_**: Allow upload of incremental's in parallel using multiple threads. Note that this will take more bandwidth of your cluster and thus should be used with caution. It may be required when you do repair your instance primary token range using subrange repair creating a lot of small files during the process. Default: ```false```
-5. **_priam.incremental.bkup.max.consumers_**: The maximum number of consumer threads to use while uploading incremental's when running in parallel mode. Default: ```4```
-6. **_priam.incremental.bkup.queue.size_**: The max size of the queue in which `producer` can put the incremental files to be uploaded by consumers. Default: ```100000```
+2. **_priam.incremental.cf.include_**: Column Family(ies), comma delimited, to include for incremental backups. If no override exists, all keyspaces/cf's will be backed up to remote file system. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Incremental exclude list is applied first to exclude CF/keyspace and then incremental include list is applied to include the CF's/keyspaces. Default: ```None```
+3. **_priam.incremental.cf.exclude_**: Column Family(ies), comma delimited, to ignore while doing incremental backup. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Incremental exclude list is applied first to exclude CF/keyspace and then incremental include list is applied to include the CF's/keyspaces. Default: ```None```
+4. **_priam.async.incremental_**: Allow upload of incremental's in parallel using multiple threads. Note that this will take more bandwidth of your cluster and thus should be used with caution. It may be required when you do repair your instance primary token range using subrange repair creating a lot of small files during the process. Default: ```false```
+
+## Manual Invocation
+1. ```http://localhost:8080/Priam/REST/v1/backup/incremental_backup```
 
 # Commit log Configuration
 1. **_priam.clbackup.enabled_**: This allows the backup of the commit logs from Cassandra to the backup location. The default value to check for new commit log is 1 min. Default: ```false```
@@ -91,4 +120,3 @@ Priam uses PGP as the encryption / decryption cryptography algorithm. Other algo
 4. **_priam.private.key.location_**: The location on disk of the private key used by the cryptography algorithm. 
 5. **_priam.pgp.pubkey.file.location_**: The location on disk of the public key used by the cryptography algorithm. 
 
-# Manual Invocation

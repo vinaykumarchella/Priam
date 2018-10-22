@@ -62,7 +62,7 @@ The name 'Priam' refers to the King of Troy in Greek mythology, who was the fath
 
 # [Presentations](presentations.html)
 
-# [FAQ](faq.html)
+# [FAQ](faq/faq.html)
 
 # Authors 
 1. Arun Agrawal @arunagrawal84

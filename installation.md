@@ -49,7 +49,7 @@ Using IAM Credentials allows you to provide access to the AWS api without storin
 2. Assign that role to the auto scaling group.
 3. Modify `priam/src/main/java/com/netflix/priam/defaultimpl/PriamGuiceModule.java`
 
-````
+```java
    // Add this line
    import com.netflix.priam.aws.IAMCredential;
    
@@ -61,7 +61,7 @@ Using IAM Credentials allows you to provide access to the AWS api without storin
            // Add this line
            bind(ICredential.class).to(IAMCredential.class);
        }
- ````
+ ```
 
    
 ## S3 Buckets

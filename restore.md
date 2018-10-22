@@ -10,19 +10,25 @@ Data from a snapshot can be restored to the same cluster or a different cluster.
 The _LocationInfo_ files are ignored and not backed up.  This forces Cassandra to rediscover other nodes in the cluster upon restore and refresh the ring nodes. 
 
 **Important**: Restores should only be performed on the same size cluster. 
+
+## Async Downloads
+
+During restore, the instance is **_not in service_** and thus Priam tries its best to utilize available bandwidth to download the SSTables from remote file system. We use `8` threads by default to download the files. 
  
 ## Configuration
 1. **_priam.restore.prefix_**: This is the location from where the backup will be restored. This has to be the fully qualified location where cluster backup is stored (till cluster name). E.g. ```bucket_name/test_backup/test/us-east-1/cass_appname```. Default: ```None```
 2. **_priam.restore.snapshot_**: This is the start dateTime and end dateTime from which cluster will be restored. Priam will start finding the latest full snapshot from the end dateTime and will keep going till start dateTime. After the full snapshot is found, Priam downloads all the incremental's. E.g. ```2017040500,201704092359```. Default: ```None```
 3. **_priam.restore.threads_**: The number of threads to use for restore. Default: ```8```
-4. **_priam.restore.cf.include_**: Column Family(ies), comma delimited, to include for restore. If no override exists, all keyspaces/cf's will be restored. The expected format is keyspace.cfname. CF name allows special character "*" to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Restore exclude list is applied first to exclude CF/keyspace and then restore include list is applied to include the CF's/keyspaces. Default: ```None```
-5. **_priam.restore.cf.exclude_**: Column Family(ies), comma delimited, to ignore while doing restore. The expected format is keyspace.cfname. CF name allows special character "*" to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Restore exclude list is applied first to exclude CF/keyspace and then restore include list is applied to include the CF's/keyspaces. Default: ```None```
+4. **_priam.restore.cf.include_**: Column Family(ies), comma delimited, to include for restore. If no override exists, all keyspaces/cf's will be restored. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Restore exclude list is applied first to exclude CF/keyspace and then restore include list is applied to include the CF's/keyspaces. Default: ```None```
+5. **_priam.restore.cf.exclude_**: Column Family(ies), comma delimited, to ignore while doing restore. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Restore exclude list is applied first to exclude CF/keyspace and then restore include list is applied to include the CF's/keyspaces. Default: ```None```
 7. **_priam.clrestore.max_**: Max number of commit logs to restore. This will by default take last N number of commit logs to restore if commit log backup is enabled. Default: ```10```. 
 8. **_priam.postrestorehook.enabled_**: indicates if postrestorehook is enabled.
 9. **_priam.postrestorehook_**: contains the command with arguments to be executed as part of postrestorehook. Priam would wait for completion of this hook before proceeding to starting C*.
 10. **_priam.postrestorehook.heartbeat.filename_**: heartbeat file that postrestorehook emits. Priam keeps a tab on this file to make sure postrestorehook is making progress. Otherwise, a new process of postrestorehook would be spawned (upon killing existing process if still exists)
 11. **_priam.postrestorehook.done.filename_**:'done' file that postrestorehook creates upon completion of execution.
 12. **_priam.postrestorehook.timeout.in.days_**:maximum time that Priam should wait before killing the postrestorehook process (if not already complete)
+13. **_priam.download.queue.size_**: Queue size to be used for restore downloads. Note that once queue is full, we would wait for `priam.download.timeout` to add any new item before declining the request and throwing exception. Default: 100,000. 
+14. **_priam.download.timeout_**: Downloads are scheduled in `priam.download.queue.size`. If queue is full then we wait for this time for the queue to have an entry available for queueing the current task. Default: 10 minutes. 
 
 # Support for Encrypted Backups
 
@@ -50,5 +56,6 @@ Currently, Google cloud and secondary/cross AWS accounts are supported for resto
 4. **_priam.roleassumption.arn_**: Amazon Resource Name to assume while restoring the backups from an AWS account which requires cross-account assumption. Default: ```None```
 
 # Manual Invocation
-1. ```curl http://localhost:8080/Priam/REST/v1/restore/status```
-2. ```curl http://localhost:8080/Priam/REST/v1/restore/daterange```
+1. ```http://localhost:8080/Priam/REST/v1/restore/status```
+
+2. ```http://localhost:8080/Priam/REST/v1/restore/daterange```
