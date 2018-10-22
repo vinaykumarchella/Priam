@@ -2,6 +2,46 @@
   <img src="images/priam.png" alt="Priam Logo" />
 </h1>
 
+# Table Of Contents
+
+## [TL;DR;](#tldr)
+
+1. [Requirements](#requirements)
+
+1. [Compatibility](#compatibility)
+
+## [Installation](docs/installation.html)
+
+## Management Tasks
+1. [Token Management](docs/tokenmanagement.html)
+
+1. [Cassandra Tuning](docs/cassandratuning.html)
+
+1. [Cassandra REST API](docs/cassandrarestapi.html)
+
+1. [Backups](docs/backups.html)
+
+1. [Restore](docs/restore.html)
+
+1. [Compaction](docs/compaction.html)
+
+1. [Flush](docs/flush.html)
+
+1. [Health](docs/health.html)
+
+1. [Configuration](docs/configuration.html)
+
+1. [Metrics](docs/metrics.html)
+
+## [Contributions](docs/contributions.html)
+
+## [Presentations](docs/presentations.html)
+
+## [FAQ](faq/faq.html)
+
+## [Authors](#authors)
+
+
 # TL;DR;
 
 
@@ -24,45 +64,20 @@ The name 'Priam' refers to the King of Troy in Greek mythology, who was the fath
 * Pluggable modules for future enhancements (support for multiple data storage).
 * REST APIs for backup/restore and other operations
 * REST APIs for validating backups. 
+* Monitor health of Cassandra and auto-remediate common issues. 
 
 ## Requirements
 * Cloud support: AWS only
 * Requires deployment of EC2 Instances behind an Auto Scaling Group(ASG). Ideally one ASG per datacenter.
 * Supports one token per EC2 instance (no support for vnodes yet)
 
-# Compatibility
+## Compatibility
 
 |Priam Branch|Cassandra Version |Description| Javadoc
 | :-----------:| :-----------------: | :---------  |
 |[4.x](https://github.com/Netflix/Priam/tree/4.x)       |C* 4.x                      | Alpha: Currently it supports Apache C* 4.x|[link](https://www.javadoc.io/doc/com.netflix.priam/priam/4.0.0-alpha7)
 |[3.11](https://github.com/Netflix/Priam/tree/3.11)                 | C* 3.x                     | Currently it supports Apache C* 3.x |[link](https://www.javadoc.io/doc/com.netflix.priam/priam/3.11.35)
 |[3.x](https://github.com/Netflix/Priam/tree/3.x)                  | C* 2.1.x                  | Any minor version of Apache C* 2.1.x and DSE |[link](https://www.javadoc.io/doc/com.netflix.priam/priam/3.1.65)
-
-
-# [Installation](installation.html)
-
-# Management Tasks
-## [Token Management](tokenmanagement.html)
-
-## [Cassandra Tuning](cassandratuning.html)
-
-## [Cassandra REST API](cassandrarestapi.html)
-
-## [Backups](backups.html)
-
-## [Restore](restore.html)
-
-## [Compaction](compaction.html)
-
-## [Flush](flush.html)
-
-## [Metrics](metrics.html)
-
-# [Contributions](contributions.html)
-
-# [Presentations](presentations.html)
-
-# [FAQ](faq/faq.html)
 
 # Authors 
 1. Arun Agrawal @arunagrawal84
