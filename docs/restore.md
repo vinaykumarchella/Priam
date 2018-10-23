@@ -55,7 +55,34 @@ Currently, Google cloud and secondary/cross AWS accounts are supported for resto
 2. **_priam.gcs.service.acct.private.key_**: The absolute path on disk for the Google Cloud Storage PFX file (i.e. the combined format of the private key and certificate). This value is supposed to be encrypted using open encrypt. Default: ```None```
 4. **_priam.roleassumption.arn_**: Amazon Resource Name to assume while restoring the backups from an AWS account which requires cross-account assumption. Default: ```None```
 
-# Manual Invocation
-1. ```http://localhost:8080/Priam/REST/v1/restore/status```
+# API
 
-2. ```http://localhost:8080/Priam/REST/v1/restore/daterange```
+#### Restore Status
+> ```http://localhost:8080/Priam/REST/v1/restore/status```
+
+  This gives the status of the current or last restore. Note that the restore status is not persisted on ephemeral disk and thus this status may be lost at restart of Priam. 
+  
+  **Output**: 
+  ```json
+    {
+      "startDateRange": "[yyyyMMddHHmm]",
+      "endDateRange": "[yyyyMMddHHmm]",
+      "executionStartTime": "[yyyyMMddHHmm]",
+      "executionEndTime": "[yyyyMMddHHmm]",
+      "snapshotMetaFile": "<remote_file_system_location_of_meta.json_used_for_restore>",
+      "status": "[STARTED|FINISHED|FAILED]"
+    }
+   ```
+#### Manual Restore
+> ```http://localhost:8080/Priam/REST/v1/restore/{daterange}```
+  
+  This starts a user-triggered restore for a given daterange. **Note**: It expects that other restore configurations are already configured. It requires a minimum of `priam.restore.prefix` to be already configured. 
+  
+  **Parameters**: 
+  1. `daterange`: Optional: This is a comma separated start time and end time for the restore in the format of `yyyyMMddHHmm` or `yyyyMMdd`. 
+  If no value is provided or a value of `default` is provided then it takes start time as (current time - 1 day) and end time as current time.
+  
+  **Output**: 
+  ```json
+  {"ok"}
+  ```

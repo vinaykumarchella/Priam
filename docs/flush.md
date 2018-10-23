@@ -11,9 +11,9 @@ Flush the data in Memtables on 1:* keyspaces from memory to disk
 
 * _daily_ means the flush will run once daily at the specified time.  The value is an integer representing the hour. E.g. ```daily=10``` will run at 10:00 a.m. daily.
 
-## Manual Invocation
-```http://localhost:8080/Priam/REST/v1/cassadmin/flush```
+## API
+> ```http://localhost:8080/Priam/REST/v1/cassadmin/flush```
 
-The result will be a json payload.
+**Output:** 
 * For success, the payload is ```{"Flushed":true}```
 * For failure, the payload will be ```{"status":"ERROR", "desc":"error_reason"}```

@@ -20,13 +20,30 @@ Example: If you want to change the jmx port to **7200** for your cluster 'my_clu
 * **value**: _7200_  
 
 
-## Configuration API
+## API
 
 Priam exposes all the configuration items used to configure various components in Priam via REST API. 
 
-1. `http://localhost:8080/Priam/REST/v1/config/structured/{group}`
-1. `http://localhost:8080/Priam/REST/v1/config/structured/{group}/{name}`
-1. `http://localhost:8080/Priam/REST/v1/config/unstructured/{name}`
+### Get all configurations
+> `http://localhost:8080/Priam/REST/v1/config/structured/group`
+
+This returns all the configuration as resolved by Priam in a JSON blob. 
+
+### Get a configuration
+> `http://localhost:8080/Priam/REST/v1/config/structured/group/{name}`
+
+This will return the configuration (as JSON) as resolved by Priam. **Note**: This requires the caller to know the name of the java functions, and is thus not recommended. 
+
+Example for _success_: 
+```text
+curl http://localhost:8080/Priam/REST/v1/config/structured/group/dynamicSnitchEnabled
+{"dynamicSnitchEnabled":true}
+```
+
+In case of _failure_: 
+```json
+{"message":"No such structured config: [queueSize]"}
+```
 
 ## Configuration dump to local file
 Priam also dumps these `resolved` configurations (from multiple ConfigSource) into a local file at regular intervals (default: 1 min) so that any other tool using Priam can consume these configurations. 

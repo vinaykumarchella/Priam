@@ -7,9 +7,9 @@ Compact the data in SSTables on 1:* keyspaces/CF.
 3. **_priam.compaction.cron_**: This allows compactions to be run on CRON. Example: you want to run compaction every 1 hour. Value needs to be a valid CRON expression. To disable compaction, remove any overrides i.e. return -1 for this value. The default value is ```-1```. 
 
 
-## Manual Invocation
-```http://localhost:8080/Priam/REST/v1/cassadmin/compcat```
+## API
+> ```http://localhost:8080/Priam/REST/v1/cassadmin/compcat```
 
-The result will be a json payload.
+**Output:** 
 * For success, the payload is ```{"Compcated":true}```
 * For failure, the payload will be ```{"status":"ERROR", "desc":"error_reason"}```

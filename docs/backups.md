@@ -82,16 +82,133 @@ Priam can download the ```meta.json``` for a given snapshot, parse it and then v
 7. **_priam.backup.status.location_**: The absolute path to store the backup status on disk. Default: ```<data file location>/backup.status```. 
 8. **_priam.async.snapshot_**: This decides if snapshot files should be uploaded to the remote file system in async fashion. This will allow snapshot to use the `priam.backup.threads` to do parallel uploads. Default: ```false```. 
 
-## Manual Invocation
-1. ```http://localhost:8080/Priam/REST/v1/backup/do_snapshot```
-2. ```http://localhost:8080/Priam/REST/v1/backup/status```
-3. ```http://localhost:8080/Priam/REST/v1/backup/status/{date}```
-4. ```http://localhost:8080/Priam/REST/v1/backup/status/{date}/snapshots```
-5. ```http://localhost:8080/Priam/REST/v1/backup/validate/snapshot/{daterange}```
-6. ```http://localhost:8080/Priam/REST/v1/backup/list/{daterange}```
+## API
 
+### Execute Snapshot
+> ```http://localhost:8080/Priam/REST/v1/backup/do_snapshot```
 
+This executes a one time snapshot on this instance and starts uploading the files to remote file system. 
 
+**Output:** 
+```json
+{"ok"}
+ ```
+
+### Backup Status
+> ```http://localhost:8080/Priam/REST/v1/backup/status```
+
+Get the status of the last known backup. If priam is restarted, it will always show `DONE`. 
+
+**Output:** 
+```json
+{"SnapshotStatus":"[DONE|ERROR|RUNNING|NOT_APPLICABLE]"}
+```
+
+### Backup Status for a date
+> ```http://localhost:8080/Priam/REST/v1/backup/status/{date}```
+
+Determines the status of a snapshot for a date.  If there was at least one successful snapshot for the date, snapshot for the date is considered completed.
+
+**Parameters:** 
+* {date}: Required: Date of the snapshot to check in the format of `yyyyMMdd`. 
+
+**Output:**
+
+For success: 
+```json
+{"Snapshotstatus":true,
+"token":"<token_value>",
+"starttime":"[yyyyMMddHHmm]",
+"completetime":"[yyyyMMddHHmm]"}
+```
+
+For failure: 
+```json
+{"Snapshotstatus":true,
+"token":"<token_value>"}
+```
+
+### List all snapshots
+> ```http://localhost:8080/Priam/REST/v1/backup/status/{date}/snapshots```
+
+List all the snapshot executed for a date. 
+
+**Parameters:** 
+* {date}: Required: Date of the snapshot to check in the format of `yyyyMMdd`. 
+
+**Output:**
+```json
+{"Snapshots":["yyyyMMddHHmm","yyyyMMddHHmm"]}
+```
+
+### Validate snapshot
+> ```http://localhost:8080/Priam/REST/v1/backup/validate/snapshot/{daterange}```
+
+Determines the validity of the backup by 
+
+1. Downloading meta.json file 
+1. Listing of the backup directory  
+1. Find the missing or extra files in backup location.
+
+This by default takes the latest snapshot of the application. One can provide exact hour and min to check specific backup. **Note**: This is an expensive call (money and time) as it calls list on the remote file system, thus should be used with caution.
+
+**Parameters:**
+
+*`daterange`: Optional: This is a comma separated start time and end time for the snapshot in the format of `yyyyMMddHHmm` or `yyyyMMdd`. 
+  If no value is provided or a value of `default` is provided then it takes start time as (current time - 1 day) and end time as current time.
+  
+**Output:**
+```json
+{  
+  "inputStartDate":"[yyyyMMddHHmm]",
+  "inputEndDate":"[yyyyMMddHHmm]",
+  "snapshotAvailable":true,
+  "valid":true,
+  "backupFileListAvailable":true,
+  "metaFileFound":true,
+  "selectedDate":"[yyyyMMdd]",
+  "snapshotTime":"[yyyyMMddHHmm]",
+  "filesInMetaOnly":[  
+
+  ],
+  "filesInS3Only":[  
+    "file1"
+  ],
+  "filesMatched":[  
+    "file1",
+    "file2"
+  ]
+}
+``` 
+
+### List the backup files  
+> ```http://localhost:8080/Priam/REST/v1/backup/list/{daterange}```
+
+List all the files in the remote file system for the given daterange. **Note**: This is an expensive call (money and time) as it calls list on the remote file system, thus should be used with caution.
+
+**Parameters:**
+
+*`daterange`: Optional: This is a comma separated start time and end time for the snapshot in the format of `yyyyMMddHHmm` or `yyyyMMdd`. 
+  If no value is provided or a value of `default` is provided then it takes start time as (current time - 1 day) and end time as current time.
+  
+**Output:**
+```json
+{
+  "files": [
+    {
+      "bucket": "<remote_file_system>",
+      "filename": "file",
+      "app": "<app_name>",
+      "region": "<region>",
+      "token": "<token>",
+      "ts": "[yyyyMMddHHmm]",
+      "instance_id": "<instance_id>",
+      "uploaded_ts": "[yyyyMMddHHmm]"
+    }
+],
+  "num_files": <no_of_files>
+}
+```
 # Incremental backup
 
 When incremental backups are enabled in Cassandra, hard links are created for all new SSTables created in the incremental backup directory. Since SSTables are immutable files they can be safely copied to an external source. Priam scans this directory frequently for incremental SSTable files and uploads to S3. 
@@ -102,8 +219,15 @@ When incremental backups are enabled in Cassandra, hard links are created for al
 3. **_priam.incremental.cf.exclude_**: Column Family(ies), comma delimited, to ignore while doing incremental backup. The expected format is keyspace.cfname. CF name allows special character **"_*_"** to denote all the columnfamilies in a given keyspace. e.g. keyspace1.* denotes all the CFs in keyspace1. Incremental exclude list is applied first to exclude CF/keyspace and then incremental include list is applied to include the CF's/keyspaces. Default: ```None```
 4. **_priam.async.incremental_**: Allow upload of incremental's in parallel using multiple threads. Note that this will take more bandwidth of your cluster and thus should be used with caution. It may be required when you do repair your instance primary token range using subrange repair creating a lot of small files during the process. Default: ```false```
 
-## Manual Invocation
-1. ```http://localhost:8080/Priam/REST/v1/backup/incremental_backup```
+## API
+> ```http://localhost:8080/Priam/REST/v1/backup/incremental_backup```
+
+Enable the incremental backup on this instance. **Note**: This call does not change the value of the property `priam.backup.incremental.enable`
+
+**Output:** 
+```json
+{"ok"}
+```
 
 # Commit log Configuration
 1. **_priam.clbackup.enabled_**: This allows the backup of the commit logs from Cassandra to the backup location. The default value to check for new commit log is 1 min. Default: ```false```
