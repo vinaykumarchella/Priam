@@ -16,22 +16,28 @@
  */
 package com.netflix.priam.resources;
 
-import com.google.inject.Inject;
-import com.netflix.priam.PriamServer;
-import com.netflix.priam.identity.DoubleRing;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
-import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.inject.Inject;
+import com.netflix.priam.PriamServer;
+import com.netflix.priam.identity.DoubleRing;
+import com.netflix.priam.merics.Metrics;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
+import org.json.simple.JSONValue;
 
 /**
  * This servlet will provide the configuration API service as and when Cassandra requests for it.
@@ -42,11 +48,23 @@ public class CassandraConfig {
     private static final Logger logger = LoggerFactory.getLogger(CassandraConfig.class);
     private final PriamServer priamServer;
     private final DoubleRing doubleRing;
+    private final AtomicLong getSeedsCnt, getTokenCnt, getReplacedIpCnt;
 
     @Inject
-    public CassandraConfig(PriamServer server, DoubleRing doubleRing) {
+    public CassandraConfig(PriamServer server, DoubleRing doubleRing, Registry registry) {
         this.priamServer = server;
         this.doubleRing = doubleRing;
+
+        getSeedsCnt = PolledMeter.using(registry)
+                   .withName(Metrics.METRIC_PREFIX + "getSeedCnt")
+                   .monitorMonotonicCounter(new AtomicLong());
+        getTokenCnt = PolledMeter.using(registry)
+                                 .withName(Metrics.METRIC_PREFIX + "getTokenCnt")
+                                 .monitorMonotonicCounter(new AtomicLong());
+        getReplacedIpCnt = PolledMeter.using(registry)
+                                 .withName(Metrics.METRIC_PREFIX + "getReplacedIpCnt")
+                                 .monitorMonotonicCounter(new AtomicLong());
+
     }
 
     @GET
@@ -54,7 +72,11 @@ public class CassandraConfig {
     public Response getSeeds() {
         try {
             final List<String> seeds = priamServer.getInstanceIdentity().getSeeds();
-            if (!seeds.isEmpty()) return Response.ok(StringUtils.join(seeds, ',')).build();
+            if (!seeds.isEmpty())
+            {
+                getReplacedIpCnt.incrementAndGet();
+                return Response.ok(StringUtils.join(seeds, ',')).build();
+            }
             logger.error("Cannot find the Seeds");
         } catch (Exception e) {
             logger.error("Error while executing get_seeds", e);
@@ -70,6 +92,7 @@ public class CassandraConfig {
             String token = priamServer.getInstanceIdentity().getInstance().getToken();
             if (StringUtils.isNotBlank(token)) {
                 logger.info("Returning token value \"{}\" for this instance to caller.", token);
+                getTokenCnt.incrementAndGet();
                 return Response.ok(priamServer.getInstanceIdentity().getInstance().getToken())
                         .build();
             }
@@ -100,6 +123,7 @@ public class CassandraConfig {
     @Path("/get_replaced_ip")
     public Response getReplacedIp() {
         try {
+            getReplacedIpCnt.incrementAndGet();
             return Response.ok(String.valueOf(priamServer.getInstanceIdentity().getReplacedIp()))
                     .build();
         } catch (Exception e) {
