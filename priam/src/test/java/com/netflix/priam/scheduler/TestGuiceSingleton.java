@@ -42,15 +42,15 @@ public class TestGuiceSingleton {
     }
 
     interface EmptryInterface {
-        String print();
+        void print();
     }
 
     @Singleton
     public static class GuiceSingleton implements EmptryInterface {
 
-        public String print() {
+        public void print() {
             System.out.println(this.toString());
-            return this.toString();
+            this.toString();
         }
     }
 
@@ -59,6 +59,5 @@ public class TestGuiceSingleton {
         protected void configure() {
             bind(EmptryInterface.class).to(GuiceSingleton.class).asEagerSingleton();
         }
-
     }
 }

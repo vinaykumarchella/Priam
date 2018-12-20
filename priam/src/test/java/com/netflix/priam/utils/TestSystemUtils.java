@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,25 +15,18 @@
  *
  */
 
-package com.netflix.priam.backup.identity;
+package com.netflix.priam.utils;
 
-import com.netflix.priam.identity.InstanceEnvIdentity;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class FakeInstanceEnvIdentity implements InstanceEnvIdentity {
+/** Created by aagrawal on 12/1/18. */
+public class TestSystemUtils {
 
-    @Override
-    public Boolean isClassic() {
-        return null;
+    @Test
+    public void testGetDataFromUrl() {
+        String dummyurl = "https://jsonplaceholder.typicode.com/todos/1";
+        String response = SystemUtils.getDataFromUrl(dummyurl);
+        Assert.assertNotNull(response);
     }
-
-    @Override
-    public Boolean isDefaultVpc() {
-        return null;
-    }
-
-    @Override
-    public Boolean isNonDefaultVpc() {
-        return null;
-    }
-
 }

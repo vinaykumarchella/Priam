@@ -23,13 +23,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CompositeConfigSourceTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CompositeConfigSourceTest.class.getName());
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(CompositeConfigSourceTest.class.getName());
 
     @Test
     public void read() {
         MemoryConfigSource memoryConfigSource = new MemoryConfigSource();
         IConfigSource configSource = new CompositeConfigSource(memoryConfigSource);
-        configSource.intialize("foo", "bar");
+        configSource.initialize("foo", "bar");
 
         Assert.assertEquals(0, configSource.size());
         configSource.set("foo", "bar");
