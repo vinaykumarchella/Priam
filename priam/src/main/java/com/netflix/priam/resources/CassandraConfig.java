@@ -48,7 +48,7 @@ public class CassandraConfig {
     private static final Logger logger = LoggerFactory.getLogger(CassandraConfig.class);
     private final PriamServer priamServer;
     private final DoubleRing doubleRing;
-    private final AtomicLong getSeedsCnt, getTokenCnt, getReplacedIpCnt;
+    private final AtomicLong getSeedsCnt, getTokenCnt, getReplacedIpCnt, doubleRingCnt;
 
     @Inject
     public CassandraConfig(PriamServer server, DoubleRing doubleRing, Registry registry) {
@@ -56,14 +56,19 @@ public class CassandraConfig {
         this.doubleRing = doubleRing;
 
         getSeedsCnt = PolledMeter.using(registry)
-                   .withName(Metrics.METRIC_PREFIX + "getSeedCnt")
-                   .monitorMonotonicCounter(new AtomicLong());
+                                 .withName(Metrics.METRIC_PREFIX + "cass.getSeedCnt")
+                                 .monitorMonotonicCounter(new AtomicLong());
         getTokenCnt = PolledMeter.using(registry)
-                                 .withName(Metrics.METRIC_PREFIX + "getTokenCnt")
+                                 .withName(Metrics.METRIC_PREFIX + "cass.getTokenCnt")
                                  .monitorMonotonicCounter(new AtomicLong());
         getReplacedIpCnt = PolledMeter.using(registry)
-                                 .withName(Metrics.METRIC_PREFIX + "getReplacedIpCnt")
-                                 .monitorMonotonicCounter(new AtomicLong());
+                                      .withName(Metrics.METRIC_PREFIX + "cass.getReplacedIpCnt")
+                                      .monitorMonotonicCounter(new AtomicLong());
+
+        doubleRingCnt = PolledMeter.using(registry)
+                                   .withName(Metrics.METRIC_PREFIX + "cass.doubleRingCnt")
+                                   .monitorMonotonicCounter(new AtomicLong());
+
 
     }
 
@@ -74,7 +79,7 @@ public class CassandraConfig {
             final List<String> seeds = priamServer.getInstanceIdentity().getSeeds();
             if (!seeds.isEmpty())
             {
-                getReplacedIpCnt.incrementAndGet();
+                getSeedsCnt.incrementAndGet();
                 return Response.ok(StringUtils.join(seeds, ',')).build();
             }
             logger.error("Cannot find the Seeds");
@@ -94,7 +99,7 @@ public class CassandraConfig {
                 logger.info("Returning token value \"{}\" for this instance to caller.", token);
                 getTokenCnt.incrementAndGet();
                 return Response.ok(priamServer.getInstanceIdentity().getInstance().getToken())
-                        .build();
+                               .build();
             }
 
             logger.error("Cannot find token for this instance.");
@@ -111,7 +116,7 @@ public class CassandraConfig {
     public Response isReplaceToken() {
         try {
             return Response.ok(String.valueOf(priamServer.getInstanceIdentity().isReplace()))
-                    .build();
+                           .build();
         } catch (Exception e) {
             // TODO: can this ever happen? if so, what conditions would cause an exception here?
             logger.error("Error while executing is_replace_token", e);
@@ -125,7 +130,7 @@ public class CassandraConfig {
         try {
             getReplacedIpCnt.incrementAndGet();
             return Response.ok(String.valueOf(priamServer.getInstanceIdentity().getReplacedIp()))
-                    .build();
+                           .build();
         } catch (Exception e) {
             logger.error("Error while executing get_replaced_ip", e);
             return Response.serverError().build();
@@ -153,6 +158,7 @@ public class CassandraConfig {
     @Path("/double_ring")
     public Response doubleRing() throws IOException, ClassNotFoundException {
         try {
+            doubleRingCnt.incrementAndGet();
             doubleRing.backup();
             doubleRing.doubleSlots();
         } catch (Throwable th) {
