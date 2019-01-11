@@ -115,8 +115,8 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
     public void downloadFile(final Path remotePath, final Path localPath, final int retry)
             throws BackupRestoreException {
         // TODO: Should we download the file if localPath already exists?
-        if (remotePath == null) return;
-
+        if (remotePath == null || localPath == null) return;
+        localPath.toFile().getParentFile().mkdirs();
         logger.info("Downloading file: {} to location: {}", remotePath, localPath);
         try {
             new BoundedExponentialRetryCallable<Void>(500, 10000, retry) {
@@ -230,11 +230,12 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
             throws BackupRestoreException;
 
     @Override
-    public String getBucket() {
+    public String getShard() {
         return getPrefix().getName(0).toString();
     }
 
-    protected Path getPrefix() {
+    @Override
+    public Path getPrefix() {
         Path prefix = Paths.get(configuration.getBackupPrefix());
 
         if (StringUtils.isNotBlank(configuration.getRestorePrefix())) {
@@ -247,7 +248,7 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
     @Override
     public Iterator<AbstractBackupPath> listPrefixes(Date date) {
         String prefix = pathProvider.get().clusterPrefix(getPrefix().toString());
-        Iterator<String> fileIterator = list(prefix, File.pathSeparator);
+        Iterator<String> fileIterator = listFileSystem(prefix, File.pathSeparator, null);
 
         //noinspection unchecked
         return new TransformIterator(
@@ -262,7 +263,7 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
     @Override
     public Iterator<AbstractBackupPath> list(String path, Date start, Date till) {
         String prefix = pathProvider.get().remotePrefix(start, till, path);
-        Iterator<String> fileIterator = list(prefix, null);
+        Iterator<String> fileIterator = listFileSystem(prefix, null, null);
 
         @SuppressWarnings("unchecked")
         TransformIterator<String, AbstractBackupPath> transformIterator =

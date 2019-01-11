@@ -18,6 +18,7 @@
 package com.netflix.priam.backup;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -36,7 +37,9 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import mockit.Mock;
 import mockit.MockUp;
@@ -128,6 +131,7 @@ public class TestS3FileSystem {
         MockS3PartUploader.setup();
         MockS3PartUploader.completionFailure = true;
         S3FileSystem fs = injector.getInstance(S3FileSystem.class);
+        fs.setS3Client(new MockAmazonS3Client().getMockInstance());
         String snapshotfile =
                 "target/data/Keyspace1/Standard1/backups/201108082320/Keyspace1-Standard1-ia-1-Data.db";
         RemoteBackupPath backupfile = injector.getInstance(RemoteBackupPath.class);
@@ -166,6 +170,27 @@ public class TestS3FileSystem {
         logger.info(rule.getPrefix());
         Assert.assertEquals("casstestbackup/" + region + "/fake-app/", rule.getPrefix());
         Assert.assertEquals(5, rule.getExpirationInDays());
+    }
+
+    @Test
+    public void testDeleteObjects() throws Exception {
+        S3FileSystem fs = injector.getInstance(S3FileSystem.class);
+        List<Path> filesToDelete = new ArrayList<>();
+        // Empty files
+        fs.deleteRemoteFiles(filesToDelete);
+
+        // Lets add some random files now.
+        filesToDelete.add(Paths.get("a.txt"));
+        fs.deleteRemoteFiles(filesToDelete);
+
+        // Emulate error now.
+        try {
+            MockAmazonS3Client.emulateError = true;
+            fs.deleteRemoteFiles(filesToDelete);
+            Assert.assertTrue(false);
+        } catch (BackupRestoreException e) {
+            Assert.assertTrue(true);
+        }
     }
 
     // Mock Nodeprobe class
@@ -214,6 +239,7 @@ public class TestS3FileSystem {
     static class MockAmazonS3Client extends MockUp<AmazonS3Client> {
         static boolean ruleAvailable = false;
         static BucketLifecycleConfiguration bconf = new BucketLifecycleConfiguration();
+        static boolean emulateError = false;
 
         @Mock
         public InitiateMultipartUploadResult initiateMultipartUpload(
@@ -250,6 +276,13 @@ public class TestS3FileSystem {
         public void setBucketLifecycleConfiguration(
                 String bucketName, BucketLifecycleConfiguration bucketLifecycleConfiguration) {
             bconf = bucketLifecycleConfiguration;
+        }
+
+        @Mock
+        public DeleteObjectsResult deleteObjects(DeleteObjectsRequest var1)
+                throws SdkClientException, AmazonServiceException {
+            if (emulateError) throw new AmazonServiceException("Unable to reach AWS");
+            return null;
         }
     }
 }

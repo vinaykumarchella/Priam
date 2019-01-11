@@ -25,11 +25,9 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.netflix.priam.aws.S3FileSystem;
-import com.netflix.priam.config.IConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
+import com.netflix.priam.utils.DateUtil;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import mockit.Mock;
 import mockit.MockUp;
@@ -44,43 +42,29 @@ import org.junit.Test;
  * @author Praveen Sadhu
  */
 public class TestFileIterator {
-    private static Injector injector;
     private static Date startTime, endTime;
-    private static Calendar cal;
 
-    private static AmazonS3Client s3client;
     private static S3FileSystem s3FileSystem;
-    private static IConfiguration conf;
-    private static InstanceIdentity factory;
     private static String region;
     private static String bucket = "TESTBUCKET";
 
     @BeforeClass
     public static void setup() throws InterruptedException, IOException {
-        s3client = new MockAmazonS3Client().getMockInstance();
+        AmazonS3Client s3client = new MockAmazonS3Client().getMockInstance();
         new MockObjectListing();
 
-        injector = Guice.createInjector(new BRTestModule());
-        conf = injector.getInstance(IConfiguration.class);
-        factory = injector.getInstance(InstanceIdentity.class);
+        Injector injector = Guice.createInjector(new BRTestModule());
+        InstanceIdentity factory = injector.getInstance(InstanceIdentity.class);
         region = factory.getInstanceInfo().getRegion();
         s3FileSystem = injector.getInstance(S3FileSystem.class);
         s3FileSystem.setS3Client(s3client);
 
-        cal = Calendar.getInstance();
-        cal.set(2011, 7, 11, 0, 30, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        startTime = cal.getTime();
-        cal.add(Calendar.HOUR, 5);
-        endTime = cal.getTime();
+        DateUtil.DateRange dateRange = new DateUtil.DateRange("201108110030,201108110530");
+        startTime = new Date(dateRange.getStartTime().toEpochMilli());
+        endTime = new Date(dateRange.getEndTime().toEpochMilli());
     }
 
-    // MockAmazonS3Client class
-    @Ignore
     static class MockAmazonS3Client extends MockUp<AmazonS3Client> {
-        static String bucketName = "";
-        static String prefix = "";
-
         @Mock
         public ObjectListing listObjects(ListObjectsRequest listObjectsRequest)
                 throws AmazonClientException {
@@ -128,23 +112,11 @@ public class TestFileIterator {
         }
     }
 
-    private Path getClusterPrefix() {
-        return Paths.get(
-                conf.getBackupLocation(),
-                factory.getInstanceInfo().getRegion(),
-                conf.getAppName(),
-                factory.getInstance().getToken());
-    }
-
     @Test
     public void testIteratorEmptySet() {
-        cal.set(2011, 7, 11, 6, 1, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        Date stime = cal.getTime();
-        cal.add(Calendar.HOUR, 5);
-        Date etime = cal.getTime();
-        MockAmazonS3Client.bucketName = bucket;
-        MockAmazonS3Client.prefix = getClusterPrefix() + "/20110811";
+        DateUtil.DateRange dateRange = new DateUtil.DateRange("201107110601,201107111101");
+        Date stime = new Date(dateRange.getStartTime().toEpochMilli());
+        Date etime = new Date(dateRange.getEndTime().toEpochMilli());
 
         Iterator<AbstractBackupPath> fileIterator = s3FileSystem.list(bucket, stime, etime);
         Set<String> files = new HashSet<>();
@@ -157,8 +129,6 @@ public class TestFileIterator {
         MockObjectListing.truncated = false;
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = false;
-        MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = getClusterPrefix() + "/20110811";
 
         Iterator<AbstractBackupPath> fileIterator = s3FileSystem.list(bucket, startTime, endTime);
 
@@ -192,8 +162,6 @@ public class TestFileIterator {
         MockObjectListing.truncated = true;
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = false;
-        MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = getClusterPrefix() + "/20110811";
 
         Iterator<AbstractBackupPath> fileIterator = s3FileSystem.list(bucket, startTime, endTime);
 
@@ -243,8 +211,6 @@ public class TestFileIterator {
         MockObjectListing.truncated = true;
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = true;
-        MockAmazonS3Client.bucketName = bucket;
-        MockAmazonS3Client.prefix = getClusterPrefix() + "/20110811";
 
         Iterator<AbstractBackupPath> fileIterator = s3FileSystem.list(bucket, startTime, endTime);
 
@@ -294,12 +260,6 @@ public class TestFileIterator {
         MockObjectListing.truncated = true;
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = false;
-        MockAmazonS3Client.bucketName = "RESTOREBUCKET";
-        MockAmazonS3Client.prefix =
-                "test_restore_backup/fake-restore-region/fakerestorecluster"
-                        + "/"
-                        + factory.getInstance().getToken();
-        MockAmazonS3Client.prefix += "/20110811";
 
         Iterator<AbstractBackupPath> fileIterator =
                 s3FileSystem.list(
