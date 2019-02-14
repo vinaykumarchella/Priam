@@ -19,6 +19,7 @@ package com.netflix.priam.backup;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.config.IConfiguration;
 import com.netflix.priam.merics.BackupMetrics;
 import com.netflix.priam.notification.BackupEvent;
@@ -115,8 +116,8 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
     public void downloadFile(final Path remotePath, final Path localPath, final int retry)
             throws BackupRestoreException {
         // TODO: Should we download the file if localPath already exists?
-        if (remotePath == null) return;
-
+        if (remotePath == null || localPath == null) return;
+        localPath.toFile().getParentFile().mkdirs();
         logger.info("Downloading file: {} to location: {}", remotePath, localPath);
         try {
             new BoundedExponentialRetryCallable<Void>(500, 10000, retry) {
@@ -182,7 +183,7 @@ public abstract class AbstractFileSystem implements IBackupFileSystem, EventGene
                 long uploadedFileSize;
 
                 // Upload file if it not present at remote location.
-                if (!doesRemoteFileExist(remotePath)) {
+                if (path.getType() != BackupFileType.SST_V2 || !doesRemoteFileExist(remotePath)) {
                     uploadedFileSize =
                             new BoundedExponentialRetryCallable<Long>(500, 10000, retry) {
                                 @Override
